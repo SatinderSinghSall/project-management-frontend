@@ -1,108 +1,224 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Calendar, UsersIcon, FolderOpen } from "lucide-react";
-import { format } from "date-fns";
+import {
+  ArrowRight,
+  CalendarDays,
+  Users,
+  FolderOpen,
+  Plus,
+  CircleDot,
+} from "lucide-react";
+import { format, isValid } from "date-fns";
 import { useSelector } from "react-redux";
 import CreateProjectDialog from "./CreateProjectDialog";
 
+const statusStyles = {
+  PLANNING:
+    "bg-slate-100 text-slate-700 ring-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-700",
+  ACTIVE:
+    "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20",
+  ON_HOLD:
+    "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20",
+  COMPLETED:
+    "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20",
+  CANCELLED:
+    "bg-red-50 text-red-700 ring-red-200 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/20",
+};
+
+const priorityStyles = {
+  LOW: "text-slate-400 dark:text-zinc-500",
+  MEDIUM: "text-amber-500 dark:text-amber-400",
+  HIGH: "text-red-500 dark:text-red-400",
+};
+
+const formatLabel = (value = "") =>
+  value
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+
 const ProjectOverview = () => {
-    const statusColors = {
-        PLANNING: "bg-zinc-200 text-zinc-800 dark:bg-zinc-600 dark:text-zinc-200",
-        ACTIVE: "bg-emerald-200 text-emerald-800 dark:bg-emerald-500 dark:text-emerald-900",
-        ON_HOLD: "bg-amber-200 text-amber-800 dark:bg-amber-500 dark:text-amber-900",
-        COMPLETED: "bg-blue-200 text-blue-800 dark:bg-blue-500 dark:text-blue-900",
-        CANCELLED: "bg-red-200 text-red-800 dark:bg-red-500 dark:text-red-900"
-    };
+  const currentWorkspace = useSelector(
+    (state) => state?.workspace?.currentWorkspace || null,
+  );
 
-    const priorityColors = {
-        LOW: "border-zinc-300 text-zinc-600 dark:border-zinc-600 dark:text-zinc-400",
-        MEDIUM: "border-amber-300 text-amber-700 dark:border-amber-500 dark:text-amber-400",
-        HIGH: "border-green-300 text-green-700 dark:border-green-500 dark:text-green-400",
-    };
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [projects, setProjects] = useState([]);
 
-    const currentWorkspace = useSelector((state) => state?.workspace?.currentWorkspace || null);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [projects, setProjects] = useState([]);
+  useEffect(() => {
+    setProjects(currentWorkspace?.projects || []);
+  }, [currentWorkspace]);
 
-    useEffect(() => {
-        setProjects(currentWorkspace?.projects || []);
-    }, [currentWorkspace]);
+  if (!currentWorkspace) return null;
 
-    return currentWorkspace && (
-        <div className="bg-white dark:bg-zinc-950 dark:bg-gradient-to-br dark:from-zinc-800/70 dark:to-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 rounded-lg overflow-hidden">
-            <div className="border-b border-zinc-200 dark:border-zinc-800 p-4 flex items-center justify-between">
-                <h2 className="text-md text-zinc-800 dark:text-zinc-300">Project Overview</h2>
-                <Link to={'/projects'} className="text-sm text-zinc-600 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 flex items-center">
-                    View all <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-            </div>
+  return (
+    <>
+      <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+        {/* Section header */}
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5 dark:border-zinc-800">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-slate-900 sm:text-base dark:text-white">
+              Project Overview
+            </h2>
+            <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+              A quick look at your workspace projects
+            </p>
+          </div>
 
-            <div className="p-0">
-                {projects.length === 0 ? (
-                    <div className="p-12 text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-500 rounded-full flex items-center justify-center">
-                            <FolderOpen size={32} />
-                        </div>
-                        <p className="text-zinc-600 dark:text-zinc-400">No projects yet</p>
-                        <button onClick={() => setIsDialogOpen(true)} className="mt-4 px-4 py-2 text-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white dark:text-zinc-200 rounded hover:opacity-90 transition">
-                            Create your First Project
-                        </button>
-                        <CreateProjectDialog isDialogOpen={isDialogOpen} setIsDialogOpen={setIsDialogOpen} />
-                    </div>
-                ) : (
-                    <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                        {projects.slice(0, 5).map((project) => (
-                            <Link key={project.id} to={`/projectsDetail?id=${project.id}&tab=tasks`} className="block p-6 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-zinc-800 dark:text-zinc-300 mb-1">
-                                            {project.name}
-                                        </h3>
-                                        <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
-                                            {project.description || 'No description'}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-2 ml-4">
-                                        <span className={`text-xs px-2 py-1 rounded ${statusColors[project.status]}`}>
-                                            {project.status.replace('_', ' ').replaceAll(/\b\w/g, c => c.toUpperCase())}
-                                        </span>
-                                        <div className={`w-2 h-2 rounded-full border-2 ${priorityColors[project.priority]}`} />
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-500 mb-3">
-                                    <div className="flex items-center gap-4">
-                                        {project.members?.length > 0 && (
-                                            <div className="flex items-center gap-1">
-                                                <UsersIcon className="w-3 h-3" />
-                                                {project.members.length} members
-                                            </div>
-                                        )}
-                                        {project.end_date && (
-                                            <div className="flex items-center gap-1">
-                                                <Calendar className="w-3 h-3" />
-                                                {format(new Date(project.end_date), "MMM d, yyyy")}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-zinc-500 dark:text-zinc-500">Progress</span>
-                                        <span className="text-zinc-600 dark:text-zinc-400">{project.progress || 0}%</span>
-                                    </div>
-                                    <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded h-1.5">
-                                        <div className="h-1.5 bg-blue-500 rounded" style={{ width: `${project.progress || 0}%` }} />
-                                    </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                )}
-            </div>
+          <Link
+            to="/projects"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 sm:text-sm dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+          >
+            View all
+            <ArrowRight size={15} />
+          </Link>
         </div>
-    );
-}
+
+        {/* Empty state */}
+        {projects.length === 0 ? (
+          <div className="flex flex-col items-center px-5 py-12 text-center sm:py-16">
+            <div className="flex size-14 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+              <FolderOpen size={25} strokeWidth={1.7} />
+            </div>
+
+            <h3 className="mt-4 text-sm font-semibold text-slate-900 dark:text-white">
+              No projects yet
+            </h3>
+
+            <p className="mt-1 max-w-xs text-sm leading-6 text-slate-500 dark:text-zinc-400">
+              Create your first project to organize work, assign tasks, and
+              track progress.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setIsDialogOpen(true)}
+              className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
+            >
+              <Plus size={16} />
+              Create project
+            </button>
+          </div>
+        ) : (
+          /* Project list */
+          <div className="divide-y divide-slate-200 dark:divide-zinc-800">
+            {projects.slice(0, 5).map((project) => {
+              const progress = Math.min(
+                100,
+                Math.max(0, Number(project.progress) || 0),
+              );
+
+              const status =
+                statusStyles[project.status] || statusStyles.PLANNING;
+              const priority =
+                priorityStyles[project.priority] || priorityStyles.LOW;
+
+              const endDate = project.end_date
+                ? new Date(project.end_date)
+                : null;
+
+              const formattedEndDate =
+                endDate && isValid(endDate)
+                  ? format(endDate, "MMM d, yyyy")
+                  : null;
+
+              return (
+                <Link
+                  key={project.id}
+                  to={`/projectsDetail?id=${project.id}&tab=tasks`}
+                  className="group block min-w-0 px-4 py-5 transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:px-5 sm:py-5 dark:hover:bg-zinc-900/60"
+                >
+                  {/* Title and status */}
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words text-sm font-semibold text-slate-900 transition-colors group-hover:text-blue-700 dark:text-zinc-100 dark:group-hover:text-blue-400">
+                        {project.name}
+                      </h3>
+
+                      <p className="mt-1.5 line-clamp-2 break-words text-sm leading-5 text-slate-500 dark:text-zinc-400">
+                        {project.description || "No description provided."}
+                      </p>
+                    </div>
+
+                    <div className="flex max-w-[45%] shrink-0 flex-col items-end gap-2">
+                      <span
+                        className={`inline-flex max-w-full items-center rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset sm:text-[11px] ${status}`}
+                      >
+                        <span className="truncate">
+                          {formatLabel(project.status || "PLANNING")}
+                        </span>
+                      </span>
+
+                      <span
+                        title={`Priority: ${formatLabel(project.priority || "LOW")}`}
+                        className={`inline-flex items-center gap-1 text-[11px] font-medium ${priority}`}
+                      >
+                        <CircleDot size={12} />
+                        {formatLabel(project.priority || "LOW")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Project metadata */}
+                  <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-zinc-500">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Users size={14} className="shrink-0" />
+                      {project.members?.length || 0}{" "}
+                      {(project.members?.length || 0) === 1
+                        ? "member"
+                        : "members"}
+                    </span>
+
+                    {formattedEndDate && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <CalendarDays size={14} className="shrink-0" />
+                        Due {formattedEndDate}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Progress */}
+                  <div className="mt-4">
+                    <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                      <span className="font-medium text-slate-500 dark:text-zinc-400">
+                        Progress
+                      </span>
+                      <span className="font-semibold tabular-nums text-slate-700 dark:text-zinc-300">
+                        {progress}%
+                      </span>
+                    </div>
+
+                    <div
+                      className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800"
+                      role="progressbar"
+                      aria-label={`${project.name} progress`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={progress}
+                    >
+                      <div
+                        className={`h-full rounded-full transition-[width] duration-500 ${
+                          project.status === "COMPLETED"
+                            ? "bg-emerald-500"
+                            : "bg-blue-600"
+                        }`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <CreateProjectDialog
+        isDialogOpen={isDialogOpen}
+        setIsDialogOpen={setIsDialogOpen}
+      />
+    </>
+  );
+};
 
 export default ProjectOverview;
