@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChartNoAxesColumn,
   ChevronDown,
+  CirclePlus,
   FolderKanban,
   Kanban,
   Settings2,
@@ -84,19 +85,30 @@ const ProjectSidebar = () => {
       </div>
 
       {projects.length === 0 ? (
-        <div className="mx-2 flex items-start gap-2.5 rounded-xl border border-dashed border-zinc-200 px-3 py-3 dark:border-zinc-800">
-          <Sparkles className="mt-0.5 size-4 shrink-0 text-zinc-400" />
-          <div>
-            <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
-              No projects yet
-            </p>
-            <Link
-              to="/projects"
-              className="mt-1 inline-block text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
-            >
-              Create a project
-            </Link>
+        <div className="group mx-2 rounded-xl border border-dashed border-blue-200 bg-gradient-to-b from-blue-50/80 to-white p-3 transition-all duration-200 hover:border-blue-300 hover:shadow-sm dark:border-blue-900/60 dark:from-blue-950/30 dark:to-zinc-900 dark:hover:border-blue-800">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-blue-100 bg-white text-blue-600 shadow-sm transition-transform duration-200 group-hover:scale-105 dark:border-zinc-700 dark:bg-zinc-800 dark:text-blue-400">
+              <FolderKanban className="size-4" strokeWidth={1.8} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold leading-4 text-zinc-800 dark:text-zinc-100">
+                No projects yet
+              </p>
+              <p className="mt-1 text-[11px] leading-4 text-zinc-500 dark:text-zinc-400">
+                Your next project starts here.
+              </p>
+            </div>
           </div>
+
+          <Link
+            to="/projects"
+            className="mt-3 flex min-h-9 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-600/20 transition-all duration-200 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
+          >
+            <CirclePlus className="size-3.5 shrink-0" strokeWidth={2} />
+            <span>Create project</span>
+            <ArrowRight className="ml-auto size-3.5 shrink-0 opacity-75 transition-transform duration-200 group-hover:translate-x-0.5" />
+          </Link>
         </div>
       ) : (
         <div className="space-y-1">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -150,6 +150,8 @@ const ProjectTasks = ({ tasks = [] }) => {
 
   const safeTasks = Array.isArray(tasks) ? tasks : [];
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const assigneeList = useMemo(() => {
     const assignees = safeTasks
       .map((task) => task.assignee?.name)
@@ -260,6 +262,17 @@ const ProjectTasks = ({ tasks = [] }) => {
     }
   };
 
+  useEffect(() => {
+    if (!showDeleteModal) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showDeleteModal]);
+
   const handleDelete = async () => {
     if (deleting || selectedTasks.length === 0) return;
 
@@ -269,14 +282,9 @@ const ProjectTasks = ({ tasks = [] }) => {
 
     if (idsToDelete.length === 0) {
       setSelectedTasks([]);
+      setShowDeleteModal(false);
       return;
     }
-
-    const confirmed = window.confirm(
-      `Delete ${idsToDelete.length} selected task${idsToDelete.length === 1 ? "" : "s"}? This action cannot be undone.`,
-    );
-
-    if (!confirmed) return;
 
     setDeleting(true);
     setErrorBanner(null);
@@ -296,8 +304,12 @@ const ProjectTasks = ({ tasks = [] }) => {
 
       dispatch(deleteTask(idsToDelete));
       setSelectedTasks([]);
+      setShowDeleteModal(false);
+
       toast.success(
-        `${idsToDelete.length} task${idsToDelete.length === 1 ? "" : "s"} deleted successfully.`,
+        `${idsToDelete.length} task${
+          idsToDelete.length === 1 ? "" : "s"
+        } deleted successfully.`,
       );
     } catch (error) {
       const message = getErrorMessage(
@@ -538,16 +550,12 @@ const ProjectTasks = ({ tasks = [] }) => {
           {selectedTasks.length > 0 && (
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setShowDeleteModal(true)}
               disabled={deleting}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500/30 dark:bg-zinc-900 dark:text-red-400 dark:hover:bg-red-500/10"
+              className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3.5 text-sm font-medium text-red-600 transition-colors hover:border-red-300 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500/30 dark:bg-zinc-900 dark:text-red-400 dark:hover:bg-red-500/10"
             >
-              {deleting ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Trash2 size={15} />
-              )}
-              {deleting ? "Deleting..." : `Delete (${selectedTasks.length})`}
+              <Trash2 size={15} />
+              Delete ({selectedTasks.length})
             </button>
           )}
 
@@ -895,6 +903,115 @@ const ProjectTasks = ({ tasks = [] }) => {
           </>
         )}
       </div>
+
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-zinc-950/50 p-4 backdrop-blur-[3px]"
+          role="presentation"
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+            aria-describedby="delete-modal-description"
+            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl shadow-black/20 dark:border-zinc-800 dark:bg-zinc-900"
+          >
+            {/* Header */}
+            <div className="flex items-start gap-3.5 border-b border-zinc-100 p-5 dark:border-zinc-800 sm:p-6">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+                <Trash2 className="size-5" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2
+                    id="delete-modal-title"
+                    className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
+                  >
+                    Delete selected tasks
+                  </h2>
+
+                  <span className="rounded-md border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+                    Danger zone
+                  </span>
+                </div>
+
+                <p className="mt-1 text-sm leading-5 text-zinc-500 dark:text-zinc-400">
+                  This action is permanent and cannot be undone.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                aria-label="Close delete confirmation"
+                className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6">
+              <p
+                id="delete-modal-description"
+                className="text-sm leading-6 text-zinc-600 dark:text-zinc-300"
+              >
+                Are you sure you want to permanently delete the selected tasks?
+                Their associated task records may no longer be available.
+              </p>
+
+              <div className="mt-4 flex items-center gap-3 rounded-xl border border-red-200/80 bg-red-50/70 p-3.5 dark:border-red-500/20 dark:bg-red-500/5">
+                <AlertTriangle className="size-5 shrink-0 text-red-600 dark:text-red-400" />
+
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-300">
+                    {selectedTasks.length} task
+                    {selectedTasks.length === 1 ? "" : "s"} selected
+                  </p>
+
+                  <p className="mt-0.5 text-xs leading-5 text-red-700/80 dark:text-red-300/80">
+                    All selected tasks will be removed from this project.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions remain visible while content scrolls */}
+            <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:justify-end sm:p-5">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || selectedTasks.length === 0}
+                className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 active:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-red-600 dark:focus-visible:ring-offset-zinc-900"
+              >
+                {deleting ? (
+                  <>
+                    <LoaderCircle className="size-4 animate-spin" />
+                    Deleting tasks...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="size-4" />
+                    Delete {selectedTasks.length} task
+                    {selectedTasks.length === 1 ? "" : "s"}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
